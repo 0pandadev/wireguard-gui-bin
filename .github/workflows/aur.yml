@@ -30,9 +30,11 @@ jobs:
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `tag=${res.data.tag_name}\n`);
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
 
-            const appImageAsset = res.data.assets.find(asset => 
-              asset.name.endsWith('.AppImage') && 
-              (asset.name.includes('x86_64') || asset.name.includes('amd64') || !asset.name.includes('arm'))
+            const appImageAsset = res.data.assets.find(asset =>
+              asset.name.endsWith('.AppImage') &&
+              (asset.name.includes('x86_64') || asset.name.includes('amd64')) &&
+              !asset.name.includes('aarch64') &&
+              !asset.name.includes('arm64')
             );
 
             if (appImageAsset) {
@@ -46,7 +48,17 @@ jobs:
           PKGVER=$(grep pkgver PKGBUILD | head -n1 | cut -d'=' -f2 | tr -d ' ')
           echo "Current pkgver: $PKGVER"
           echo "Latest version: ${{ steps.get_release.outputs.version }}"
-          if [ "$PKGVER" = "${{ steps.get_release.outputs.version }}" ]; then
+
+          # Download AppImage temporarily to check hash
+          wget -q -O /tmp/check.AppImage "${{ steps.get_release.outputs.download_url }}"
+          NEW_HASH=$(sha256sum /tmp/check.AppImage | awk '{print $1}')
+          rm /tmp/check.AppImage
+
+          CURRENT_HASH=$(grep sha256sums_x86_64 PKGBUILD | sed -n "s/.*('\([^']*\)').*/\1/p")
+          echo "Current hash: $CURRENT_HASH"
+          echo "Latest hash: $NEW_HASH"
+
+          if [ "$PKGVER" = "${{ steps.get_release.outputs.version }}" ] && [ "$CURRENT_HASH" = "$NEW_HASH" ]; then
             echo "No update needed."
             echo "update_needed=false" >> $GITHUB_OUTPUT
             exit 0
