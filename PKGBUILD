@@ -1,6 +1,6 @@
 # Maintainer: PandaDEV <contact@pandadev.net>
 pkgname=wireguard-gui-bin
-pkgver=0.1.2
+pkgver=0.1.8
 pkgrel=1
 pkgdesc="A wireguard client GUI for Linux made with nextauri."
 arch=(x86_64)
